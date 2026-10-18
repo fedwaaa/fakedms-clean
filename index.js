@@ -614,7 +614,9 @@
                     },
                     optimistic: false,
                     sendMessageOptions: {},
-                    isPushNotification: false
+                    isPushNotification: false,
+                    isRestored: true,
+                    silent: true
                 });
             } catch (e) {
                 console.error("[FakeDMs] Error restoring message:", e);
@@ -1102,6 +1104,19 @@
                                                 continue;
                                             }
                                             event.messages.push(clean);
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Block any ping / sound / notification popup triggered by fake messages
+                            if (event.type === "NOTIFICATION_CREATE" || event.type === "MESSAGE_NOTIFICATION") {
+                                const targetId = event.message?.id || event.messageId || event.id;
+                                if (targetId) {
+                                    for (const fakes of fakeMessagesByChannel.values()) {
+                                        if (fakes.some((f) => f.id === targetId)) {
+                                            args[0] = { type: "NOOP" };
+                                            return;
                                         }
                                     }
                                 }
