@@ -654,16 +654,26 @@
         const attachments = [];
         if (fileName) {
             const attachId = generateSnowflake();
-            const dlUrl = fileUrl || `https://cdn.discordapp.com/attachments/0/${attachId}/${encodeURIComponent(fileName)}`;
-            attachments.push({
+            const chIdForUrl = targetChannelId || "123456789012345678";
+            const dlUrl = fileUrl || `https://cdn.discordapp.com/attachments/${chIdForUrl}/${attachId}/${encodeURIComponent(fileName)}`;
+            const cType = guessContentType(fileName);
+            const isImage = cType.startsWith("image/");
+            const isVideo = cType.startsWith("video/");
+            const attObj = {
                 id: attachId,
                 filename: fileName,
                 size: getRandomFileSize(fileName),
                 url: dlUrl,
                 proxy_url: dlUrl,
-                content_type: guessContentType(fileName),
+                content_type: cType,
+                content_scan_version: 0,
                 spoiler: false
-            });
+            };
+            if (isImage || isVideo) {
+                attObj.width = 1280;
+                attObj.height = 720;
+            }
+            attachments.push(attObj);
         }
 
         const messageId = generateSnowflake();
