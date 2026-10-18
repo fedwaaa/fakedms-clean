@@ -397,6 +397,30 @@
         } catch {}
     }
 
+    // ── Mark channel read so unread/mention badges clear once opened ────────
+    const openedChannels = new Set();
+
+    function ackChannel(channelId, messageId) {
+        if (!channelId || !FluxDispatcher?.dispatch) return;
+        try {
+            FluxDispatcher.dispatch({
+                type: "MESSAGE_ACK",
+                channelId: channelId,
+                messageId: messageId || undefined,
+                lastViewed: Date.now(),
+                mentionCount: 0,
+                manual: true,
+                version: 1
+            });
+        } catch {}
+        try {
+            FluxDispatcher.dispatch({
+                type: "CHANNEL_ACK",
+                channelId: channelId
+            });
+        } catch {}
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
     function generateSnowflake() {
         const DISCORD_EPOCH = 1420070400000n;
@@ -576,7 +600,9 @@
             }
         } catch {}
 
+        let lastId = null;
         for (const msg of list) {
+            lastId = msg.id;
             if (existingIds.has(msg.id)) continue;
             try {
                 FluxDispatcher.dispatch({
@@ -593,6 +619,9 @@
             } catch (e) {
                 console.error("[FakeDMs] Error restoring message:", e);
             }
+        }
+        if (openedChannels.has(channelId) || channelId === SelectedChannelStore?.getChannelId()) {
+            ackChannel(channelId, lastId);
         }
     }
 
@@ -1091,11 +1120,27 @@
                     try {
                         const handleFluxEvent = (event) => {
                             if (!event) return;
-                            const chId = event.channelId || SelectedChannelStore?.getChannelId();
+                            const activeCh = SelectedChannelStore?.getChannelId();
+                            const chId = event.channelId || activeCh;
+                            if (event.type === "CHANNEL_SELECT" && chId) {
+                                openedChannels.add(chId);
+                                ackChannel(chId);
+                                setTimeout(() => ackChannel(chId), 100);
+                                setTimeout(() => ackChannel(chId), 400);
+                            }
                             if (chId && fakeMessagesByChannel.has(chId)) {
-                                setTimeout(() => restoreFakeMessages(chId), 120);
-                                setTimeout(() => restoreFakeMessages(chId), 500);
-                                setTimeout(() => restoreFakeMessages(chId), 1200);
+                                setTimeout(() => {
+                                    restoreFakeMessages(chId);
+                                    if (openedChannels.has(chId) || chId === SelectedChannelStore?.getChannelId()) {
+                                        ackChannel(chId);
+                                    }
+                                }, 120);
+                                setTimeout(() => {
+                                    restoreFakeMessages(chId);
+                                    if (openedChannels.has(chId) || chId === SelectedChannelStore?.getChannelId()) {
+                                        ackChannel(chId);
+                                    }
+                                }, 500);
                             }
                         };
 
