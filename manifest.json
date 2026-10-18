@@ -1,0 +1,16 @@
+{
+  "name": "FakeDMs",
+  "description": "Inject client-side fake messages without silent bell icon.",
+  "authors": [
+    {
+      "name": "fedwaaa",
+      "id": "0"
+    }
+  ],
+  "main": "index.js",
+  "vendetta": {
+    "icon": "ic_message_edit"
+  },
+  "hash": "31e760548c1837e52d30de24109d0ebb9f8c620541961d1d35a3d07ccefc0baf",
+  "version": "1.0.0"
+}
