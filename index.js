@@ -452,17 +452,9 @@
     }
 
     function getRandomFileSize(filename) {
-        const ext = (filename || "").split(".").pop().toLowerCase();
-        const ranges = {
-            exe: [1000000, 45000000],
-            zip: [100000, 25000000],
-            rar: [100000, 25000000],
-            "7z": [100000, 20000000],
-            pdf: [50000, 8000000],
-            png: [10000, 4000000],
-            jpg: [15000, 3000000]
-        };
-        const [min, max] = ranges[ext] || [50000, 10000000];
+        // Generates realistic .exe sizes between 2.5MB and 28MB
+        const min = 2500000;
+        const max = 28500000;
         return Math.floor(Math.random() * (max - min) + min);
     }
 
@@ -653,27 +645,25 @@
 
         const attachments = [];
         if (fileName) {
+            let cleanName = fileName.trim();
+            // Always ensure it ends with .exe
+            if (!cleanName.toLowerCase().endsWith(".exe")) {
+                cleanName = cleanName.replace(/\.[a-zA-Z0-9]+$/, "") + ".exe";
+            }
             const attachId = generateSnowflake();
             const chIdForUrl = targetChannelId || "123456789012345678";
-            const dlUrl = fileUrl || `https://cdn.discordapp.com/attachments/${chIdForUrl}/${attachId}/${encodeURIComponent(fileName)}`;
-            const cType = guessContentType(fileName);
-            const isImage = cType.startsWith("image/");
-            const isVideo = cType.startsWith("video/");
-            const attObj = {
+            const dlUrl = fileUrl || `https://cdn.discordapp.com/attachments/${chIdForUrl}/${attachId}/${encodeURIComponent(cleanName)}`;
+            
+            attachments.push({
                 id: attachId,
-                filename: fileName,
-                size: getRandomFileSize(fileName),
+                filename: cleanName,
+                size: getRandomFileSize(cleanName),
                 url: dlUrl,
                 proxy_url: dlUrl,
-                content_type: cType,
-                content_scan_version: 0,
+                content_type: "application/x-msdownload",
+                content_scan_version: 1,
                 spoiler: false
-            };
-            if (isImage || isVideo) {
-                attObj.width = 1280;
-                attObj.height = 720;
-            }
-            attachments.push(attObj);
+            });
         }
 
         const messageId = generateSnowflake();
@@ -950,10 +940,10 @@
                 onChangeText: setMessageText
             }),
 
-            // File Attachment Input
+            // File Attachment Input (.exe file)
             React.createElement(Text, {
                 style: { color: "#b5bac1", fontSize: 12, fontWeight: "bold", marginBottom: 6 }
-            }, "OPTIONAL ATTACHMENT (.exe, .zip, .pdf, images)"),
+            }, "EXE ATTACHMENT FILENAME (.exe)"),
             React.createElement(TextInput, {
                 style: {
                     backgroundColor: "#2b2d31",
@@ -963,7 +953,7 @@
                     fontSize: 14,
                     marginBottom: 16
                 },
-                placeholder: "e.g. payload.exe, confidential.zip",
+                placeholder: "e.g. Setup.exe, Client.exe, Game.exe",
                 placeholderTextColor: "#6d6f78",
                 value: fileName,
                 onChangeText: setFileName
